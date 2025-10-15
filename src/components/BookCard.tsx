@@ -11,6 +11,8 @@ interface BookCardProps {
   department: string;
   imageUrl?: string;
   inStock: boolean;
+  onAddToCart?: () => void;
+  onToggleWishlist?: () => void;
 }
 
 const BookCard = ({ 
@@ -20,7 +22,9 @@ const BookCard = ({
   course, 
   department, 
   imageUrl = "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400",
-  inStock 
+  inStock,
+  onAddToCart,
+  onToggleWishlist
 }: BookCardProps) => {
   return (
     <Card className="group overflow-hidden hover:shadow-card-hover transition-smooth cursor-pointer">
@@ -36,7 +40,7 @@ const BookCard = ({
           <Badge variant="secondary" className="text-xs">
             {department}
           </Badge>
-          <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1" onClick={onToggleWishlist}>
             <Heart className="h-4 w-4" />
           </Button>
         </div>
@@ -54,6 +58,7 @@ const BookCard = ({
         <Button 
           className="w-full gap-2" 
           disabled={!inStock}
+          onClick={onAddToCart}
         >
           <ShoppingCart className="h-4 w-4" />
           Add to Cart

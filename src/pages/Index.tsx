@@ -11,7 +11,7 @@ const Index = () => {
     {
       id: 1,
       title: "Introduction to Computer Science",
-      author: "Dr. John Smith",
+      author: "Dr.A Wahid Okahi",
       price: 15000,
       course: "CSC 101",
       department: "Computer Science",
@@ -20,7 +20,7 @@ const Index = () => {
     {
       id: 2,
       title: "Advanced Mathematics Vol. 1",
-      author: "Prof. Sarah Johnson",
+      author: "Prof. Sarah Asadu",
       price: 12000,
       course: "MTH 201",
       department: "Mathematics",
@@ -29,7 +29,7 @@ const Index = () => {
     {
       id: 3,
       title: "Engineering Mechanics",
-      author: "Dr. Michael Chen",
+      author: "Dr. Amina ",
       price: 18000,
       course: "ENG 301",
       department: "Engineering",
@@ -38,7 +38,7 @@ const Index = () => {
     {
       id: 4,
       title: "Organic Chemistry Fundamentals",
-      author: "Dr. Emily Brown",
+      author: "Dr. Peter Adeleke",
       price: 16500,
       course: "CHM 102",
       department: "Chemistry",
@@ -231,7 +231,10 @@ const Index = () => {
             </div>
           </div>
           <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
-            <p>© 2025 UniBookshop. All rights reserved.</p>
+            <p>© 2025 UniBookshop. All rights reserved.
+              Developed and Maintained by PROSPER OFORAH C 
+              07080773518
+            </p>
           </div>
         </div>
       </footer>

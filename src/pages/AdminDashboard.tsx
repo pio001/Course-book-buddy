@@ -2,105 +2,96 @@ import Header from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  TrendingUp, 
-  Users, 
-  BookOpen, 
-  DollarSign, 
-  Package, 
-  AlertTriangle 
-} from "lucide-react";
+import { TrendingUp, Users, BookOpen, DollarSign, Package, AlertTriangle } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { booksAPI, ordersAPI, usersAPI, uploadAPI } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const AdminDashboard = () => {
-  const stats = [
-    { label: "Total Revenue", value: "₦2.4M", change: "+12.5%", icon: DollarSign, trend: "up" },
-    { label: "Active Users", value: "1,234", change: "+8.2%", icon: Users, trend: "up" },
-    { label: "Books in Stock", value: "4,567", change: "-3.1%", icon: BookOpen, trend: "down" },
-    { label: "Pending Orders", value: "89", change: "+5.4%", icon: Package, trend: "up" },
-  ];
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [books, setBooks] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [newBook, setNewBook] = useState<any>({ title: "", author: "", price: 0, stock_quantity: 0, category: "" });
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
-  const recentOrders = [
-    { id: "ORD-123", student: "John Doe", amount: 15000, status: "Processing" },
-    { id: "ORD-124", student: "Jane Smith", amount: 22000, status: "Delivered" },
-    { id: "ORD-125", student: "Mike Johnson", amount: 18500, status: "In Transit" },
-  ];
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [b, o, u] = await Promise.all([booksAPI.getAll(), ordersAPI.getAll(), usersAPI.getAll()]);
+        setBooks(b.data || []);
+        setOrders(o.data || []);
+        setUsers(u.data || []);
+      } catch (e: any) {
+        toast({ title: "Failed to load admin data", description: e.response?.data?.msg || "Please try again", variant: "destructive" });
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
 
-  const lowStockBooks = [
-    { title: "Introduction to Computer Science", stock: 3 },
-    { title: "Advanced Mathematics Vol. 1", stock: 5 },
-    { title: "Engineering Mechanics", stock: 2 },
-  ];
+  const totalRevenue = useMemo(() => orders.reduce((sum: number, o: any) => sum + (o.total_amount || 0), 0), [orders]);
+  const activeUsers = useMemo(() => users.length, [users]);
+  const booksInStock = useMemo(() => books.reduce((sum: number, b: any) => sum + (b.stock_quantity || 0), 0), [books]);
+  const pendingOrders = useMemo(() => orders.filter((o: any) => ["pending", "processing"].includes(o.status)).length, [orders]);
+  const lowStockBooks = useMemo(() => books.filter((b: any) => (b.stock_quantity || 0) <= (b.low_stock_threshold || 10)), [books]);
+
+  const handleCreateBook = async () => {
+    try {
+      let cover_image_url: string | undefined = undefined;
+      if (imageFile) {
+        const res = await uploadAPI.image(imageFile);
+        cover_image_url = res.data.url;
+      }
+      const payload = { ...newBook, price: Number(newBook.price), stock_quantity: Number(newBook.stock_quantity), cover_image_url };
+      const created = await booksAPI.create(payload);
+      setBooks([created.data, ...books]);
+      setNewBook({ title: "", author: "", price: 0, stock_quantity: 0, category: "" });
+      setImageFile(null);
+      toast({ title: "Book created", description: "New book added to inventory" });
+    } catch (e: any) {
+      toast({ title: "Create failed", description: e.response?.data?.msg || "Please check inputs", variant: "destructive" });
+    }
+  };
+
+  if (loading) return <div className="p-8 text-center">Loading dashboard...</div>;
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-
       <div className="container py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
             <p className="text-muted-foreground">Manage your bookshop operations</p>
           </div>
-          <Button className="gap-2">
-            <BookOpen className="h-4 w-4" />
-            Add New Book
-          </Button>
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats Grid (dynamic) */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {stats.map((stat, index) => (
-            <Card key={index}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                    index === 0 ? 'bg-gradient-primary' :
-                    index === 1 ? 'bg-gradient-secondary' :
-                    index === 2 ? 'bg-accent/20' : 'bg-muted'
-                  }`}>
-                    <stat.icon className={`h-5 w-5 ${
-                      index === 0 || index === 1 ? 'text-white' : 
-                      index === 2 ? 'text-accent' : 'text-muted-foreground'
-                    }`} />
-                  </div>
-                  <Badge variant={stat.trend === "up" ? "secondary" : "destructive"} className="text-xs">
-                    {stat.change}
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground mb-1">{stat.label}</p>
-                <p className="text-2xl font-bold">{stat.value}</p>
-              </CardContent>
-            </Card>
-          ))}
+          <Card><CardContent className="p-6"><p className="text-sm text-muted-foreground mb-1">Total Revenue</p><p className="text-2xl font-bold">₦{totalRevenue.toLocaleString()}</p></CardContent></Card>
+          <Card><CardContent className="p-6"><p className="text-sm text-muted-foreground mb-1">Active Users</p><p className="text-2xl font-bold">{activeUsers}</p></CardContent></Card>
+          <Card><CardContent className="p-6"><p className="text-sm text-muted-foreground mb-1">Books in Stock</p><p className="text-2xl font-bold">{booksInStock}</p></CardContent></Card>
+          <Card><CardContent className="p-6"><p className="text-sm text-muted-foreground mb-1">Pending Orders</p><p className="text-2xl font-bold">{pendingOrders}</p></CardContent></Card>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Recent Orders */}
+          {/* Recent Orders (dynamic) */}
           <div className="lg:col-span-2">
             <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Recent Orders</CardTitle>
-                  <Button variant="outline" size="sm">View All</Button>
-                </div>
-              </CardHeader>
+              <CardHeader><div className="flex items-center justify-between"><CardTitle>Recent Orders</CardTitle></div></CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {recentOrders.map((order) => (
-                    <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-full bg-gradient-primary flex items-center justify-center">
-                          <span className="text-sm font-semibold text-primary-foreground">
-                            {order.student.split(' ').map(n => n[0]).join('')}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-semibold">{order.id}</p>
-                          <p className="text-sm text-muted-foreground">{order.student}</p>
-                        </div>
+                  {orders.slice(0, 10).map((order: any) => (
+                    <div key={order._id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <p className="font-semibold">{order.order_number || order._id}</p>
+                        <p className="text-sm text-muted-foreground">{order?.user?.email || "Unknown user"}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold">₦{order.amount.toLocaleString()}</p>
+                        <p className="font-bold">₦{order.total_amount.toLocaleString()}</p>
                         <Badge variant="outline" className="text-xs">{order.status}</Badge>
                       </div>
                     </div>
@@ -108,88 +99,34 @@ const AdminDashboard = () => {
                 </div>
               </CardContent>
             </Card>
-
-            <Card className="mt-8">
-              <CardHeader>
-                <CardTitle>Sales Overview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64 flex items-center justify-center border-2 border-dashed rounded-lg">
-                  <div className="text-center">
-                    <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Sales chart will be displayed here</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
-          {/* Sidebar */}
+          {/* Sidebar: Low stock + Create Book */}
           <div className="space-y-6">
-            {/* Low Stock Alert */}
             <Card className="border-destructive/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-destructive">
-                  <AlertTriangle className="h-5 w-5" />
-                  Low Stock Alert
-                </CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="flex items-center gap-2 text-destructive"><AlertTriangle className="h-5 w-5" />Low Stock Alert</CardTitle></CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {lowStockBooks.map((book, index) => (
-                    <div key={index} className="p-3 bg-destructive/10 rounded-lg">
+                  {lowStockBooks.map((book: any) => (
+                    <div key={book._id} className="p-3 bg-destructive/10 rounded-lg">
                       <p className="font-semibold text-sm mb-1">{book.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Only {book.stock} units left
-                      </p>
+                      <p className="text-xs text-muted-foreground">Only {book.stock_quantity} left</p>
                     </div>
                   ))}
                 </div>
-                <Button variant="destructive" className="w-full mt-4" size="sm">
-                  Restock Books
-                </Button>
               </CardContent>
             </Card>
 
-            {/* Quick Actions */}
             <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>Add New Book</CardTitle></CardHeader>
               <CardContent className="space-y-2">
-                <Button variant="outline" className="w-full justify-start">
-                  Manage Inventory
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  View Reports
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  Manage Users
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  Settings
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Top Departments */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Top Departments</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Computer Science</span>
-                  <Badge variant="secondary">245 orders</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Engineering</span>
-                  <Badge variant="secondary">198 orders</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Medicine</span>
-                  <Badge variant="secondary">156 orders</Badge>
-                </div>
+                <input className="input" placeholder="Title" value={newBook.title} onChange={e => setNewBook({ ...newBook, title: e.target.value })} />
+                <input className="input" placeholder="Author" value={newBook.author} onChange={e => setNewBook({ ...newBook, author: e.target.value })} />
+                <input className="input" placeholder="Category" value={newBook.category} onChange={e => setNewBook({ ...newBook, category: e.target.value })} />
+                <input className="input" type="number" placeholder="Price" value={newBook.price} onChange={e => setNewBook({ ...newBook, price: e.target.value })} />
+                <input className="input" type="number" placeholder="Stock Qty" value={newBook.stock_quantity} onChange={e => setNewBook({ ...newBook, stock_quantity: e.target.value })} />
+                <input className="input" type="file" accept="image/*" onChange={e => setImageFile(e.target.files?.[0] || null)} />
+                <Button className="w-full" onClick={handleCreateBook}>Create Book</Button>
               </CardContent>
             </Card>
           </div>
