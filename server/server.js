@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+// file-level setup (no route changes required)
 const connectDB = require('./config/connectDB');
 
 dotenv.config();

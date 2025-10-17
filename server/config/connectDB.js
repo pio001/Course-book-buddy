@@ -1,33 +1,37 @@
 const mongoose = require('mongoose');
 
-let isConnected = 0;
+let cached = global.mongoose || { conn: null, promise: null };
 
-const connectDB = async () => {
-  if (isConnected === 1) {
+async function connectDB() {
+  if (cached.conn) {
     console.log('=> Using existing MongoDB connection');
-    return;
+    return cached.conn;
   }
 
-  const uri = process.env.MONGODB_URI;
-  if (!uri) {
-    throw new Error('MONGODB_URI is not set');
-  }
+  if (!cached.promise) {
+    const uri = process.env.MONGODB_URI;
+    if (!uri) throw new Error('MONGODB_URI is not set');
 
-  try {
-    const conn = await mongoose.connect(uri, {
+    // Create the connection promise once and reuse it
+    cached.promise = mongoose.connect(uri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      // Keep connection attempts short to avoid serverless timeouts on first cold start
       serverSelectionTimeoutMS: 5000,
-      // Reasonable pool size for serverless
+      connectTimeoutMS: 5000,
       maxPoolSize: 10,
+    }).then((mongooseInstance) => {
+      console.log('=> Connected to MongoDB');
+      return mongooseInstance;
+    }).catch((err) => {
+      console.error('MongoDB connection error:', err);
+      cached.promise = null; // reset so we can retry later
+      throw err;
     });
-    isConnected = conn.connections[0].readyState;
-    console.log('=> Connected to MongoDB');
-  } catch (err) {
-    console.error('MongoDB connection error:', err);
-    throw err;
   }
-};
+
+  cached.conn = await cached.promise;
+  global.mongoose = cached; // ensure global cache is set
+  return cached.conn;
+}
 
 module.exports = connectDB;
