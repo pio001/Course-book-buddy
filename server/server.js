@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const connectDB = require('./config/connectDB');
 
 dotenv.config();
 const app = express();
@@ -12,7 +13,7 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Always mount at '/api' so Vercel catch-all matches
-const prefix = '/api';
+const prefix = process.env.VERCEL ? '' : '/api';
 
 // Routes
 app.use(`${prefix}/auth`, require('./routes/auth'));
@@ -31,10 +32,8 @@ app.get('/', (req, res) => {
   res.send('UniBookshop API is running');
 });
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('Could not connect to MongoDB', err));
+// Connect to MongoDB (cached)
+connectDB();
 
 const PORT = process.env.PORT || 5000;
 if (process.env.VERCEL) {
