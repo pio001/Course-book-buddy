@@ -11,8 +11,8 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ADD: prefix for Vercel serverless ("", not "/api")
-const prefix = process.env.VERCEL ? '' : '/api';
+// Always mount at '/api' so Vercel catch-all matches
+const prefix = '/api';
 
 // Routes
 app.use(`${prefix}/auth`, require('./routes/auth'));
@@ -36,7 +36,6 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('Could not connect to MongoDB', err));
 
-// Start/Export
 const PORT = process.env.PORT || 5000;
 if (process.env.VERCEL) {
   module.exports = app;
