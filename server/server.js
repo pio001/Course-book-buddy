@@ -33,8 +33,14 @@ app.get('/', (req, res) => {
   res.send('UniBookshop API is running');
 });
 
-// Connect to MongoDB (cached)
-connectDB();
+// Connect to MongoDB (cached) with fallback
+(async () => {
+  try {
+    await connectDB();
+  } catch (error) {
+    console.error('MongoDB connection failed, continuing without DB:', error.message);
+  }
+})();
 
 const PORT = process.env.PORT || 5000;
 if (process.env.VERCEL) {
