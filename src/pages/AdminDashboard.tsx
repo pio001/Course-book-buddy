@@ -42,8 +42,23 @@ const AdminDashboard = () => {
     try {
       let cover_image_url: string | undefined = undefined;
       if (imageFile) {
-        const res = await uploadAPI.image(imageFile);
-        cover_image_url = res.data.url;
+        try {
+          const res = await uploadAPI.image(imageFile);
+          // Prefer Cloudinary's secure_url, fallback to url
+          cover_image_url = res?.data?.secure_url || res?.data?.url;
+          if (!cover_image_url) {
+            throw new Error('Upload succeeded but no image URL returned');
+          }
+        } catch (e: any) {
+          const msg =
+            e?.response?.data?.error ||
+            e?.response?.data?.message ||
+            e?.response?.data?.msg ||
+            e?.message ||
+            'Upload failed';
+          toast({ title: 'Upload failed', description: msg, variant: 'destructive' });
+          return;
+        }
       }
       const payload = { ...newBook, price: Number(newBook.price), stock_quantity: Number(newBook.stock_quantity), cover_image_url };
       const created = await booksAPI.create(payload);
