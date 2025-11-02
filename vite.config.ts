@@ -3,7 +3,6 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -14,10 +13,14 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    dedupe: ["react", "react-dom"], // ✅ avoids duplicate React instances
+  },
+  optimizeDeps: {
+    include: ["react-paystack"], // ✅ ensure Paystack is bundled
   },
   build: {
     rollupOptions: {
-      external: ["react-paystack"],
+      external: [], // ✅ don't exclude react-paystack
     },
   },
 }));
