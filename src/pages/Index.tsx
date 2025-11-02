@@ -141,16 +141,16 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Featured Books */}
+      {/* Best Sellers */}
       <section className="py-16 md:py-24 bg-muted/30">
         <div className="container">
           <div className="flex items-center justify-between mb-8">
             <div>
               <h2 className="text-3xl md:text-4xl font-bold mb-2">
-                Featured Books
+                Best Sellers
               </h2>
               <p className="text-muted-foreground">
-                Popular textbooks for this semester
+                Most popular textbooks this semester
               </p>
             </div>
             <Link to="/browse">
@@ -162,7 +162,9 @@ const Index = () => {
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {featuredBooks.map((book) => (
-              <BookCard key={book.id} {...book} />
+              <Link to="/auth" key={book.id}>
+                <BookCard {...{...book, id: book.id.toString()}} />
+              </Link>
             ))}
           </div>
         </div>
